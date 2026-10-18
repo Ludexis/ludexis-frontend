@@ -1,9 +1,9 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
-import { adminApi, archiveApi, artworkApi, healthApi, jobMonitorApi, jobsApi, scansApi } from "@/lib/api";
+import { adminApi, archiveApi, artworkApi, edgeApi, healthApi, jobMonitorApi, jobsApi, scansApi } from "@/lib/api";
 import { useAuth } from "@/contexts/auth-context";
 import DashboardOverview from "./page";
-import type { AdminStats, JobHistory, User } from "@/lib/types";
+import type { AdminStats, EdgeDevice, JobHistory, User } from "@/lib/types";
 
 vi.mock("next/link", () => ({
   default: (props: any) => <a href={props.href}>{props.children}</a>,
@@ -22,6 +22,7 @@ vi.mock("@/lib/api", () => ({
   adminApi: { getStats: vi.fn() },
   archiveApi: { browse: vi.fn(), getDuplicates: vi.fn() },
   artworkApi: { getMissing: vi.fn() },
+  edgeApi: { getAll: vi.fn() },
   healthApi: { getHealth: vi.fn(), getDb: vi.fn(), getRedis: vi.fn() },
   jobMonitorApi: { getStats: vi.fn(), getWorkers: vi.fn() },
   jobsApi: { getAll: vi.fn() },
@@ -52,6 +53,16 @@ const running: JobHistory = { id: "job-2", job_type: "METADATA_REFRESH", status:
 
 const admin: User = { id: "admin-1", username: "admin", email: "a@example.com", is_active: true, is_superuser: true };
 
+const predator: EdgeDevice = {
+  id: "edge-1", name: "Predator", status: "ONLINE", autoscan: true, update_available: false, os: "windows", version: "1.2.0",
+  drives: [{ id: "48CECD51", mount: "Z:\\" }],
+  libraries: [
+    { id: "lib-1", name: "Vault", path: "Z:\Games", status: "ONLINE" },
+    { id: "lib-2", name: "Seagate", path: "I:\Games", status: "OFFLINE" },
+  ],
+  created_at: "2026-10-01T00:00:00Z",
+};
+
 function setup(user: User = admin, toReview = 0) {
   vi.mocked(useAuth).mockReturnValue({ user, loading: false, login: vi.fn(), logout: vi.fn() } as any);
   // Unmatched and partly matched games each count toReview.
@@ -65,6 +76,7 @@ function setup(user: User = admin, toReview = 0) {
   vi.mocked(jobMonitorApi.getStats).mockResolvedValue({ workers: 1, active_tasks: 0, reserved_tasks: 2 });
   vi.mocked(jobMonitorApi.getWorkers).mockResolvedValue({ "celery@box": { ok: "pong" } });
   vi.mocked(scansApi.getStatus).mockResolvedValue({ pending: 0, running: 0, success: 5, failed: 1, canceled: 0, total: 6 });
+  vi.mocked(edgeApi.getAll).mockResolvedValue([predator]);
   vi.mocked(jobsApi.getAll).mockImplementation(async (_type, status) => (status === "RUNNING" ? [running] : [finished, running]));
   render(<DashboardOverview />);
 }
@@ -117,6 +129,14 @@ describe("DashboardOverview", () => {
     expect(within(services).getAllByText("Healthy")).toHaveLength(2);
     expect(await screen.findByText("1 online · 0 active · 2 queued")).toBeInTheDocument();
     expect(screen.getByText("celery@box")).toBeInTheDocument();
+  });
+
+  it("lists the edge locations under the server", async () => {
+    setup();
+    const edges = await screen.findByRole("list", { name: "Edge devices" });
+    expect(within(edges).getByText("Predator")).toBeInTheDocument();
+    expect(within(edges).getByText("Online")).toBeInTheDocument();
+    expect(within(edges).getByText("v1.2.0 · 1 drive · 2 libraries · 1 offline")).toBeInTheDocument();
   });
 
   it("lists running jobs with progress apart from recent ones", async () => {

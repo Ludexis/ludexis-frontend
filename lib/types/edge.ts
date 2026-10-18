@@ -10,12 +10,20 @@ export interface EdgeDrive {
   free?: number | null;
 }
 
+export interface EdgeLibrarySummary {
+  id: string;
+  name: string;
+  path: string;
+  status: "ONLINE" | "OFFLINE";
+  drive_id?: string | null;
+  drive_mount?: string | null;
+}
+
 export interface EdgeDevice {
   id: string;
   name: string;
   status: EdgeStatus;
   autoscan: boolean;
-  match_metadata: boolean;
   last_seen_at?: string | null;
   version?: string | null;
   /** The device runs another release than the server. */
@@ -23,7 +31,7 @@ export interface EdgeDevice {
   hostname?: string | null;
   os?: EdgeOS | null;
   drives: EdgeDrive[];
-  libraries: { id: string; name: string }[];
+  libraries: EdgeLibrarySummary[];
   created_at: string;
 }
 
@@ -35,5 +43,4 @@ export interface EdgeDeviceCreated extends EdgeDevice {
 export interface EdgeDeviceUpdate {
   name?: string;
   autoscan?: boolean;
-  match_metadata?: boolean;
 }

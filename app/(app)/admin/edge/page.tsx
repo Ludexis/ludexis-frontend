@@ -1,10 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import { Copy, Download, KeyRound, MoreHorizontal, Plus, Trash2 } from "lucide-react";
+import { Copy, Download, HardDrive, KeyRound, MoreHorizontal, Pencil, Plus, Trash2 } from "lucide-react";
 import { edgeApi } from "@/lib/api";
-import type { EdgeDevice, EdgeDeviceCreated, EdgeOS } from "@/lib/types";
+import type { EdgeDevice, EdgeDeviceCreated, EdgeLibrarySummary, EdgeOS } from "@/lib/types";
 import { useAuth } from "@/contexts/auth-context";
+import { useConfirm } from "@/contexts/confirm-context";
 import { useApi } from "@/hooks/use-api";
 import { useRequirePermission } from "@/hooks/use-protected-route";
 import { can } from "@/lib/permissions";
@@ -20,7 +21,8 @@ import { Switch } from "@/components/ui/switch";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { EmptyState } from "@/components/brand/empty-state";
-import { SectionHeader, Status, dateTime, type Tone } from "@/components/admin/common";
+import { SectionHeader, Status, StatusDot, dateTime, type Tone } from "@/components/admin/common";
+import { cn } from "@/lib/utils";
 
 const STATUS: Record<EdgeDevice["status"], [string, Tone]> = {
   ONLINE: ["Online", "ok"],
@@ -44,7 +46,9 @@ export default function DashboardEdge() {
   useRequirePermission(user, loading, "ACCESS_ADMIN");
 
   const devices = useApi(() => edgeApi.getAll(), []);
+  const confirm = useConfirm();
   const [adding, setAdding] = useState(false);
+  const [renaming, setRenaming] = useState<EdgeDevice | null>(null);
   const [issued, setIssued] = useState<EdgeDeviceCreated | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
 
@@ -52,7 +56,7 @@ export default function DashboardEdge() {
     return null;
   }
 
-  const update = async (device: EdgeDevice, changes: Partial<Pick<EdgeDevice, "autoscan" | "match_metadata">>) => {
+  const update = async (device: EdgeDevice, changes: Partial<Pick<EdgeDevice, "autoscan">>) => {
     setBusyId(device.id);
     try {
       await edgeApi.update(device.id, changes);
@@ -65,7 +69,12 @@ export default function DashboardEdge() {
   };
 
   const rotate = async (device: EdgeDevice) => {
-    if (!window.confirm(`Issue a new token for ${device.name}? The device stops working until it gets the new install files.`)) return;
+    const confirmed = await confirm({
+      title: `New token for ${device.name}?`,
+      description: "The device stops working until it is set up again with the new install files.",
+      confirmLabel: "Issue new token",
+    });
+    if (!confirmed) return;
     setBusyId(device.id);
     try {
       setIssued(await edgeApi.rotateToken(device.id));
@@ -78,7 +87,12 @@ export default function DashboardEdge() {
   };
 
   const remove = async (device: EdgeDevice) => {
-    if (!window.confirm(`Remove ${device.name}? Its libraries and games stay and show as offline until you move them.`)) return;
+    const confirmed = await confirm({
+      title: `Remove ${device.name}?`,
+      description: "Its libraries and games stay and show as offline until you move them to another location.",
+      confirmLabel: "Remove device",
+    });
+    if (!confirmed) return;
     setBusyId(device.id);
     try {
       await edgeApi.remove(device.id);
@@ -129,12 +143,10 @@ export default function DashboardEdge() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className="pl-5">Device</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Drives</TableHead>
-                <TableHead>Libraries</TableHead>
-                <TableHead>Scan on connect</TableHead>
-                <TableHead>Metadata here</TableHead>
+                <TableHead className="min-w-44 pl-5">Device</TableHead>
+                <TableHead className="min-w-52">Status</TableHead>
+                <TableHead className="w-full">Drives and libraries</TableHead>
+                <TableHead className="w-28 text-center">Autoscan</TableHead>
                 <TableHead className="pr-5 text-right">
                   <span className="sr-only">Actions</span>
                 </TableHead>
@@ -145,32 +157,27 @@ export default function DashboardEdge() {
                 const [label, tone] = STATUS[device.status];
                 return (
                   <TableRow key={device.id}>
-                    <TableCell className="py-3 pl-5">
+                    <TableCell className="py-3 pl-5 align-top">
                       <p className="font-medium text-parchment">{device.name}</p>
                       <p className="text-xs text-ash">
-                        {[device.hostname, device.os && INSTALL[device.os].label, device.version && `v${device.version}`].filter(Boolean).join(" · ") ||
+                        {[device.os && INSTALL[device.os].label, device.version && `v${device.version}`].filter(Boolean).join(" · ") ||
                           "Waiting for its first check-in"}
                       </p>
+                      {device.hostname && (
+                        <p className="truncate font-mono text-xs text-ash/80" title={device.hostname}>
+                          {device.hostname}
+                        </p>
+                      )}
                       {device.update_available && <p className="text-xs text-ember">Runs another release than the server: update it</p>}
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="py-3 align-top">
                       <Status tone={tone}>{label}</Status>
                       {device.last_seen_at && <p className="tabular text-xs text-ash">Seen {dateTime(device.last_seen_at)}</p>}
                     </TableCell>
-                    <TableCell className="text-sm text-ash">
-                      {device.drives.length === 0
-                        ? "None"
-                        : device.drives.map((drive) => (
-                            <p key={drive.id} title={drive.id}>
-                              {drive.label || drive.mount}
-                              {drive.free != null && <span className="tabular"> · {formatBytes(drive.free)} free</span>}
-                            </p>
-                          ))}
+                    <TableCell className="py-3">
+                      <DriveGroups device={device} />
                     </TableCell>
-                    <TableCell className="text-sm text-ash">
-                      {device.libraries.length === 0 ? "None yet" : device.libraries.map((library) => <p key={library.id}>{library.name}</p>)}
-                    </TableCell>
-                    <TableCell>
+                    <TableCell className="py-3 text-center align-top">
                       <Switch
                         aria-label={`Scan when a drive connects to ${device.name}`}
                         checked={device.autoscan}
@@ -178,15 +185,7 @@ export default function DashboardEdge() {
                         onCheckedChange={(autoscan) => update(device, { autoscan })}
                       />
                     </TableCell>
-                    <TableCell>
-                      <Switch
-                        aria-label={`Match metadata on ${device.name}`}
-                        checked={device.match_metadata}
-                        disabled={busyId === device.id}
-                        onCheckedChange={(match_metadata) => update(device, { match_metadata })}
-                      />
-                    </TableCell>
-                    <TableCell className="pr-5 text-right">
+                    <TableCell className="pr-5 text-right align-top">
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <Button variant="ghost" size="icon-sm" aria-label={`Actions for ${device.name}`} disabled={busyId === device.id}>
@@ -194,6 +193,10 @@ export default function DashboardEdge() {
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
+                          <DropdownMenuItem onSelect={() => setRenaming(device)}>
+                            <Pencil />
+                            Rename
+                          </DropdownMenuItem>
                           <DropdownMenuItem onSelect={() => rotate(device)}>
                             <KeyRound />
                             New token and install files
@@ -222,7 +225,145 @@ export default function DashboardEdge() {
         }}
       />
       <InstallDialog device={issued} onClose={() => setIssued(null)} />
+      <RenameEdgeDialog device={renaming} onClose={() => setRenaming(null)} onRenamed={devices.reload} />
     </div>
+  );
+}
+
+interface DriveGroup {
+  key: string;
+  mount: string;
+  label?: string | null;
+  free?: number | null;
+  connected: boolean;
+  libraries: EdgeLibrarySummary[];
+}
+
+// Linux shows an NTFS drive's 64-bit serial and Windows its low 32 bits; both end in the same 8 hex digits.
+const driveKey = (id: string) => id.replace(/-/g, "").toLowerCase().slice(-8);
+
+/** The device's drives, each with the libraries on it; libraries whose drive is away are grouped by where it was. */
+function groupByDrive(device: EdgeDevice): DriveGroup[] {
+  const groups = new Map<string, DriveGroup>();
+  for (const drive of device.drives) {
+    groups.set(driveKey(drive.id), { key: driveKey(drive.id), mount: drive.mount, label: drive.label, free: drive.free, connected: true, libraries: [] });
+  }
+  for (const library of device.libraries) {
+    const folder = library.path.toLowerCase();
+    // Not scanned yet, so no drive id: the connected drive its path lies on.
+    const group =
+      (library.drive_id && groups.get(driveKey(library.drive_id))) ||
+      [...groups.values()].find((candidate) => candidate.connected && folder.startsWith(candidate.mount.toLowerCase()));
+    if (group) {
+      group.libraries.push(library);
+      continue;
+    }
+    const letter = /^([a-z]):/i.exec(library.path)?.[1]?.toUpperCase();
+    const key = library.drive_id ? driveKey(library.drive_id) : letter ? `letter-${letter}` : "unknown";
+    const away = groups.get(key) ?? {
+      key,
+      mount: library.drive_mount ?? (letter ? `${letter}:\\` : "Drive not known yet"),
+      connected: false,
+      libraries: [],
+    };
+    away.libraries.push(library);
+    groups.set(key, away);
+  }
+  return [...groups.values()];
+}
+
+function DriveGroups({ device }: { device: EdgeDevice }) {
+  const groups = groupByDrive(device);
+  if (groups.length === 0) {
+    return <p className="text-sm text-ash">No drives or libraries yet</p>;
+  }
+  return (
+    <ul className="grid grid-cols-[repeat(auto-fill,minmax(17rem,1fr))] gap-2.5">
+      {groups.map((group) => (
+        <li key={group.key} aria-label={`Drive ${group.mount}`} className="rounded-md border border-seam bg-stone/40 px-3 py-2.5">
+          <div className="flex items-center justify-between gap-3 text-sm">
+            <span className="flex min-w-0 items-center gap-2">
+              <HardDrive className={cn("size-4 shrink-0", group.connected ? "text-parchment" : "text-ash/60")} aria-hidden="true" />
+              <span className="font-mono text-parchment">{group.mount}</span>
+              {group.label && <span className="truncate text-ash">{group.label}</span>}
+            </span>
+            <span className="flex shrink-0 items-center gap-1.5 text-xs text-ash">
+              <StatusDot tone={group.connected ? "ok" : "idle"} />
+              <span className="tabular">
+                {group.connected ? (group.free != null ? `${formatBytes(group.free)} free` : "Connected") : "Not connected"}
+              </span>
+            </span>
+          </div>
+          {group.libraries.length === 0 ? (
+            <p className="mt-2 text-xs text-ash">No libraries</p>
+          ) : (
+            <div className="mt-2 flex flex-wrap gap-1.5">
+              {group.libraries.map((library) => (
+                <span
+                  key={library.id}
+                  title={library.path}
+                  className={cn("rounded bg-stone px-2 py-0.5 text-xs", library.status === "OFFLINE" ? "text-ash" : "text-parchment")}
+                >
+                  {library.name}
+                </span>
+              ))}
+            </div>
+          )}
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+function RenameEdgeDialog({ device, onClose, onRenamed }: { device: EdgeDevice | null; onClose: () => void; onRenamed: () => void }) {
+  const [name, setName] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [shown, setShown] = useState<EdgeDevice | null>(null);
+  // Start from the current name each time the dialog opens for a device.
+  if (device !== shown) {
+    setShown(device);
+    setName(device?.name ?? "");
+  }
+
+  const submit = async (event: React.FormEvent) => {
+    event.preventDefault();
+    if (!device) return;
+    setSaving(true);
+    try {
+      await edgeApi.update(device.id, { name: name.trim() });
+      toastSuccess(`Renamed to ${name.trim()}`);
+      onClose();
+      onRenamed();
+    } catch (error) {
+      toastError(error, "Could not rename the edge device");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <Dialog open={device !== null} onOpenChange={(open) => !open && onClose()}>
+      <DialogContent>
+        <form onSubmit={submit} className="space-y-5">
+          <DialogHeader>
+            <DialogTitle>Rename {device?.name}</DialogTitle>
+            <DialogDescription>The name shown here and as the location of its libraries.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2">
+            <Label htmlFor="edge-rename">Name</Label>
+            <Input id="edge-rename" value={name} onChange={(e) => setName(e.target.value)} />
+          </div>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={onClose}>
+              Cancel
+            </Button>
+            <Button type="submit" disabled={saving || !name.trim() || name.trim() === device?.name}>
+              Rename
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
   );
 }
 

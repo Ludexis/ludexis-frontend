@@ -47,7 +47,7 @@ describe("DashboardLibraries", () => {
 
   it("adds a library on an edge device chosen as its location", async () => {
     const laptop: EdgeDevice = {
-      id: "edge-1", name: "Laptop", status: "OFFLINE", autoscan: true, match_metadata: false, update_available: false,
+      id: "edge-1", name: "Laptop", status: "OFFLINE", autoscan: true, update_available: false,
       os: "windows", drives: [], libraries: [], created_at: "2026-10-01T00:00:00Z",
     };
     vi.mocked(useAuth).mockReturnValue({ user: admin, loading: false, login: vi.fn(), logout: vi.fn() } as any);

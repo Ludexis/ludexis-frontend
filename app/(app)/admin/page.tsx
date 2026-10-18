@@ -2,8 +2,8 @@
 
 import { useEffect } from "react";
 import Link from "next/link";
-import { adminApi, archiveApi, artworkApi, healthApi, jobMonitorApi, jobsApi, scansApi } from "@/lib/api";
-import type { AdminStats, HealthStatus, JobHistory, JobMonitorStats, JobMonitorWorker, ScanStatus } from "@/lib/types";
+import { adminApi, archiveApi, artworkApi, edgeApi, healthApi, jobMonitorApi, jobsApi, scansApi } from "@/lib/api";
+import type { AdminStats, EdgeDevice, HealthStatus, JobHistory, JobMonitorStats, JobMonitorWorker, ScanStatus } from "@/lib/types";
 import { useAuth } from "@/contexts/auth-context";
 import { useApi } from "@/hooks/use-api";
 import { can } from "@/lib/permissions";
@@ -67,6 +67,7 @@ export default function DashboardOverview() {
   const health = useApi(loadHealth, []);
   const stats = useApi(() => (isAdmin ? adminApi.getStats() : Promise.resolve(null)), [isAdmin]);
   const server = useApi(() => (isAdmin ? loadServer() : Promise.resolve(null)), [isAdmin]);
+  const edges = useApi(() => (isAdmin ? edgeApi.getAll() : Promise.resolve(null)), [isAdmin]);
   const jobs = useApi(loadJobs, []);
 
   const busy = (jobs.data?.running.length ?? 0) > 0;
@@ -101,7 +102,10 @@ export default function DashboardOverview() {
 
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_20rem]">
         <Activity jobs={jobs.data} loading={jobs.loading && !jobs.data} failed={Boolean(jobs.error)} onRetry={jobs.reload} />
-        <ServerCard health={health.data} server={server.data ?? undefined} isAdmin={isAdmin} />
+        <div className="min-w-0 space-y-6">
+          <ServerCard health={health.data} server={server.data ?? undefined} isAdmin={isAdmin} />
+          {isAdmin && <EdgeCard devices={edges.data ?? undefined} failed={Boolean(edges.error)} />}
+        </div>
       </div>
     </div>
   );
@@ -361,6 +365,69 @@ function ServerCard({
           </div>
         )}
 
+      </CardContent>
+    </Card>
+  );
+}
+
+const EDGE_STATUS: Record<EdgeDevice["status"], [string, "ok" | "idle"]> = {
+  ONLINE: ["Online", "ok"],
+  OFFLINE: ["Offline", "idle"],
+  PENDING: ["Not set up yet", "idle"],
+};
+
+/** The edge devices next to the server: whether each is checking in, what it runs and what it holds. */
+function EdgeCard({ devices, failed }: { devices?: EdgeDevice[]; failed: boolean }) {
+  return (
+    <Card className="min-w-0">
+      <CardHeader>
+        <CardTitle>Edge locations</CardTitle>
+      </CardHeader>
+      <CardContent data-mask className="space-y-4 text-sm">
+        {failed ? (
+          <p className="text-ash">Edge devices could not be loaded.</p>
+        ) : !devices ? (
+          <Skeleton className="h-10 w-full" />
+        ) : devices.length === 0 ? (
+          <p className="text-ash">
+            None yet.{" "}
+            <Link href="/admin/edge" className="text-parchment underline-offset-4 hover:underline">
+              Add an edge device
+            </Link>{" "}
+            to scan drives attached to another machine.
+          </p>
+        ) : (
+          <ul aria-label="Edge devices" className="space-y-3.5">
+            {devices.map((device) => {
+              const [label, tone] = EDGE_STATUS[device.status];
+              const waiting = device.libraries.filter((library) => library.status === "OFFLINE").length;
+              return (
+                <li key={device.id} className="space-y-1">
+                  <div className="flex items-center justify-between gap-3">
+                    <Link href="/admin/edge" className="min-w-0 truncate font-medium text-parchment hover:underline">
+                      {device.name}
+                    </Link>
+                    <Status tone={tone}>{label}</Status>
+                  </div>
+                  <p className="tabular text-xs text-ash">
+                    {[
+                      device.version && `v${device.version}`,
+                      plural(device.drives.length, "drive"),
+                      plural(device.libraries.length, "library", "libraries"),
+                      waiting > 0 && `${waiting} offline`,
+                    ]
+                      .filter(Boolean)
+                      .join(" · ")}
+                  </p>
+                  {device.last_seen_at && device.status !== "ONLINE" && (
+                    <p className="tabular text-xs text-ash">Last seen {dateTime(device.last_seen_at)}</p>
+                  )}
+                  {device.update_available && <p className="text-xs text-ember">Runs another release than the server</p>}
+                </li>
+              );
+            })}
+          </ul>
+        )}
       </CardContent>
     </Card>
   );
