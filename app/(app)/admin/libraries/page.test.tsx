@@ -80,4 +80,18 @@ describe("DashboardLibraries", () => {
     expect(screen.getByText("F:\\")).toBeInTheDocument();
     expect(screen.getByText("Drive not connected")).toBeInTheDocument();
   });
+
+  it("asks to check the new files a reconnected drive brought and scans their libraries", async () => {
+    vi.mocked(useAuth).mockReturnValue({ user: admin, loading: false, login: vi.fn(), logout: vi.fn() } as any);
+    vi.mocked(librariesApi.getAll).mockResolvedValue([{ ...library, edge_id: "edge-1", edge_name: "Laptop", pending_changes: 3 }]);
+    vi.mocked(scansApi.runIncremental).mockResolvedValue({});
+    render(<DashboardLibraries />);
+
+    expect(await screen.findByText("New games may have been added")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Check for changes" }));
+
+    await waitFor(() => expect(scansApi.runIncremental).toHaveBeenCalledWith("lib-1"));
+    expect(screen.queryByText("New games may have been added")).not.toBeInTheDocument();
+    expect(screen.getByText("3 new or changed files to check; press Scan to add them")).toBeInTheDocument();
+  });
 });

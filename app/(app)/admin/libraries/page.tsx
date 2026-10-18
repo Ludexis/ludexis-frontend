@@ -11,6 +11,7 @@ import { can } from "@/lib/permissions";
 import { toastError, toastSuccess } from "@/lib/toast";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Switch } from "@/components/ui/switch";
 import {
@@ -34,6 +35,8 @@ export default function DashboardLibraries() {
   const [editing, setEditing] = useState<LibraryRead | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [busyId, setBusyId] = useState<string | null>(null);
+  // Asked once per visit; the count stays on each library row until it is scanned.
+  const [changesSeen, setChangesSeen] = useState(false);
 
   if (!can(user, "ACCESS_ADMIN")) {
     return null;
@@ -84,6 +87,15 @@ export default function DashboardLibraries() {
       toastError(error, "Could not start the scan");
     } finally {
       setBusyId(null);
+    }
+  };
+
+  const changed = (libraries.data ?? []).filter((library) => (library.pending_changes ?? 0) > 0);
+
+  const checkChanges = async () => {
+    setChangesSeen(true);
+    for (const library of changed) {
+      await scan(library, "incremental");
     }
   };
 
@@ -167,6 +179,9 @@ export default function DashboardLibraries() {
                     </TableCell>
                     <TableCell>
                       <Status tone={offline ? "bad" : "ok"}>{offline ? "Offline" : "Online"}</Status>
+                      {(library.pending_changes ?? 0) > 0 && (
+                        <p className="mt-1 text-xs text-violet-lit">{filesText(library.pending_changes ?? 0)} to check; press Scan to add them</p>
+                      )}
                       {library.last_error && (
                         <p className="mt-1 max-w-64 truncate text-xs text-ash" title={library.last_error}>
                           {library.last_error}
@@ -227,7 +242,37 @@ export default function DashboardLibraries() {
         </Card>
       )}
 
+      <Dialog open={!changesSeen && changed.length > 0 && can(user, "RUN_SCANS")} onOpenChange={(open) => !open && setChangesSeen(true)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>New games may have been added</DialogTitle>
+            <DialogDescription>
+              A drive came back with new or resized files. They were only counted, not read; check them to add new games to
+              the catalogue.
+            </DialogDescription>
+          </DialogHeader>
+          <ul className="space-y-1 text-sm">
+            {changed.map((library) => (
+              <li key={library.id} className="flex justify-between gap-4">
+                <span className="text-parchment">{library.name}</span>
+                <span className="tabular text-ash">{filesText(library.pending_changes ?? 0)}</span>
+              </li>
+            ))}
+          </ul>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setChangesSeen(true)}>
+              Later
+            </Button>
+            <Button onClick={checkChanges}>Check for changes</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       <LibraryDialog open={dialogOpen} onOpenChange={setDialogOpen} library={editing} onSaved={libraries.reload} />
     </div>
   );
+}
+
+function filesText(count: number) {
+  return `${count} new or changed ${count === 1 ? "file" : "files"}`;
 }

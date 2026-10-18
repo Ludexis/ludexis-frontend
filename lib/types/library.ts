@@ -13,6 +13,8 @@ export interface LibraryRead {
   edge_status?: "PENDING" | "ONLINE" | "OFFLINE" | null;
   drive_id?: string | null;
   drive_mount?: string | null;
+  /** New or resized files an automatic edge scan found and left for a scan someone starts. */
+  pending_changes?: number;
   created_at?: string | null;
   updated_at?: string | null;
 }
