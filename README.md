@@ -1,96 +1,100 @@
-# Ludexis Frontend
+<p align="center">
+  <img src="https://raw.githubusercontent.com/InvictusRex/Ludexis/main/docs/Ludexis.webp" width="320" alt="Ludexis">
+</p>
 
-Web interface for [Ludexis](../README.md), a self-hosted game archive management
-platform. Built with Next.js (App Router), React 19, Tailwind CSS v4, and
-TypeScript.
+<h3 align="center">Ludexis Frontend</h3>
 
-## Requirements
+<p align="center">
+  The web app of <a href="https://github.com/InvictusRex/Ludexis">Ludexis</a>, a self-hosted catalogue for game archives.
+</p>
 
-- Node.js 20+ and npm
-- A running [Ludexis backend](../backend) exposing the REST API (default
-  `http://localhost:8000`)
+<p align="center">
+  <a href="https://github.com/Ludexis/ludexis-frontend/actions/workflows/ci.yml"><img src="https://github.com/Ludexis/ludexis-frontend/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
+  <img src="https://img.shields.io/badge/Next.js-16-6D3DF5?logo=nextdotjs&logoColor=white" alt="Next.js 16">
+  <img src="https://img.shields.io/badge/React-19-6D3DF5?logo=react&logoColor=white" alt="React 19">
+  <img src="https://img.shields.io/badge/TypeScript-5-6D3DF5?logo=typescript&logoColor=white" alt="TypeScript">
+  <img src="https://img.shields.io/badge/Tailwind_CSS-4-6D3DF5?logo=tailwindcss&logoColor=white" alt="Tailwind CSS 4">
+  <img src="https://img.shields.io/badge/License-MIT-6D3DF5" alt="MIT License">
+</p>
 
-## Getting Started
+<p align="center">
+  <img src="https://raw.githubusercontent.com/InvictusRex/Ludexis/main/docs/screenshots/library.webp" alt="Ludexis library" width="100%">
+</p>
+
+---
+
+This repository holds the browser side of Ludexis: the library with filters and grouped versions, game pages with screenshots, versions and files, collections, franchises, developers and tags, account settings, and the admin dashboard for libraries, jobs, schedules, users, roles and settings.
+
+It talks to the REST API in [ludexis-backend](https://github.com/Ludexis/ludexis-backend). To run the whole stack, use the Docker Compose setup in the [main repository](https://github.com/InvictusRex/Ludexis).
+
+## Getting started
+
+**Requirements:** Node.js 20+ and a running [Ludexis backend](https://github.com/Ludexis/ludexis-backend) (by default on `http://localhost:8000`).
 
 ```bash
-npm install
-cp .env.example .env
-npm run dev
+cp .env.example .env.local
+npm ci
+npm run dev                          # http://localhost:3000
 ```
 
-Open [http://localhost:3000](http://localhost:3000). If the backend has no
-administrator yet, complete the setup flow at `/auth/setup`; otherwise log in.
+Sign in with the backend's account. A fresh backend creates `admin` / `admin` and asks for a new password straight away.
 
-## Environment Variables
+## Configuration
 
-| Variable               | Default                    | Description                                  |
-| ---------------------- | -------------------------- | -------------------------------------------- |
-| `NEXT_PUBLIC_API_URL`  | `http://localhost:8000/api`| Base URL of the backend REST API             |
-| `NEXT_PUBLIC_MEDIA_URL`| `http://localhost:8000/media` | Base URL where artwork media is served   |
-| `NEXT_PUBLIC_DEBUG`    | `0`                        | Set to `1` for verbose API logging           |
+| Variable | Default | Purpose |
+| -------- | ------- | ------- |
+| `NEXT_PUBLIC_API_URL` | `http://localhost:8000/api` | Base URL of the backend API |
+| `NEXT_PUBLIC_MEDIA_URL` | `http://localhost:8000/media` | Base URL of artwork served by the backend |
+| `NEXT_PUBLIC_DEBUG` | `0` | `1` logs every API request in the browser console |
 
-Note: variables prefixed with `NEXT_PUBLIC_` are inlined at build time. In a
-Docker build they are supplied as build arguments (see below).
+`NEXT_PUBLIC_*` values are inlined at build time: restart the dev server or rebuild the image after changing them. When the API is on another origin, add the web app's origin to the backend's `CORS_ORIGINS`.
 
 ## Scripts
 
-| Command           | Description                                   |
-| ----------------- | --------------------------------------------- |
-| `npm run dev`     | Start the Next.js development server          |
-| `npm run build`   | Create a production build                     |
-| `npm run start`   | Serve the production build                    |
-| `npm run lint`    | Run ESLint                                    |
-| `npm test`        | Run the Vitest unit/integration suite         |
-| `npm run test:e2e`| Run Playwright end-to-end tests               |
+| Command | What it does |
+| ------- | ------------ |
+| `npm run dev` | Development server with hot reload |
+| `npm run build` | Production build |
+| `npm run start` | Serve the production build |
+| `npm run lint` | ESLint |
+| `npm test` | Vitest unit and component tests |
+| `npm run test:e2e` | Playwright end-to-end tests against a running app |
+| `npx tsc --noEmit` | Type check |
 
-## Project Structure
+## Project layout
 
 ```text
-app/              Next.js App Router pages and layouts
-components/       UI primitives (ui/) and feature components (common/)
-contexts/         React contexts (authentication)
-hooks/            Custom hooks
-lib/              API clients, types, media and pagination helpers
-e2e/              Playwright end-to-end and visual regression tests
+app/              App Router pages: (app) for the signed-in app, (auth) for sign-in and setup
+components/
+  ui/             shared primitives (buttons, dialogs, menus, inputs)
+  game/           game page: hero, details and marks
+  library/        library filters and query parameters
+  browse/         game grid, collections, franchises, developers, publishers and tags
+  admin/          admin dashboard: users, roles, jobs, schedules, duplicates, settings
+  shell/          layout, navigation, command palette and job indicator
+  media/, brand/, common/
+contexts/         authentication state
+hooks/            data fetching and route protection
+lib/              API clients, types, permissions, media URLs and formatting
+e2e/              Playwright tests
 ```
 
-## Testing
+Tests sit next to the code they cover (`*.test.ts`, `*.test.tsx`) and use Vitest with React Testing Library.
 
-- **Unit / integration:** Vitest + React Testing Library
-  (`npm test`). Uses `vitest.config.ts` and `vitest.setup.ts`.
-- **End-to-end:** Playwright against a live dev server (`npm run test:e2e`).
-  Browsers: Chromium by default; Firefox and WebKit projects are configured.
-- **Visual regression:** `e2e/visual.spec.ts` captures key screenshots
-  (login, library, archive detail, admin, monitoring). Regenerate baselines
-  with:
-
-  ```bash
-  npx playwright test e2e/visual.spec.ts --update-snapshots
-  ```
-
-## Docker Deployment
-
-The `Dockerfile` produces a standalone Next.js image served by its own Node
-server. It is built with relative `/api` and `/media` URLs for the proxy of the
-production stack (`docker-compose.yml` at the repository root); pass
-`--build-arg NEXT_PUBLIC_API_URL=...` and `NEXT_PUBLIC_MEDIA_URL=...` only when
-the API lives on another origin.
-
-For the full stack (backend + database + frontend, pre-seeded with a demo
-dataset), run from the repository root:
+## Docker image
 
 ```bash
-docker compose -f docker-compose.demo.yml up -d --build
+docker build -t ludexis-frontend .
 ```
 
-Then open [http://localhost:3000](http://localhost:3000) and log in with
-`admin` / `Admin123!` (or `DEMO_ADMIN_PASSWORD`).
+The image is a standalone Next.js server built with relative `/api` and `/media` URLs, so it works behind the bundled proxy on any hostname. Pass `--build-arg NEXT_PUBLIC_API_URL=...` and `--build-arg NEXT_PUBLIC_MEDIA_URL=...` only when the API lives on another origin.
 
-## Troubleshooting
+Pushes to `main` publish `ghcr.io/ludexis/ludexis-frontend:latest` for `linux/amd64` and `linux/arm64`. A `v1.2.3` tag also publishes `:1.2.3` and `:1.2`.
 
-- **401 responses:** ensure `NEXT_PUBLIC_API_URL` points at the backend and
-  the backend `CORS_ORIGINS` includes the frontend origin.
-- **Missing artwork:** verify `NEXT_PUBLIC_MEDIA_URL` and the backend
-  `ARTWORK_STORAGE_PATH`.
-- **Stale build after env changes:** env vars are inlined at build time —
-  restart the dev server or rebuild the image.
+## Contributing
+
+Bug reports, ideas and pull requests are welcome. Read the [contributing guide](https://github.com/Ludexis/.github/blob/main/CONTRIBUTING.md) first. In short: branch from `main`, keep each change focused, and make sure `npm run lint`, `npx tsc --noEmit` and `npm test` pass. Include a screenshot for visible changes.
+
+## License
+
+[MIT](LICENSE)
