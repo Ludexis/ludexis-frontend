@@ -25,6 +25,10 @@ export interface JobHistory {
   user_id?: string;
   started_at?: string;
   completed_at?: string;
+  library_id?: string | null;
+  /** Set when an edge device runs the job. */
+  edge_id?: string | null;
+  edge_name?: string | null;
 }
 
 export interface JobHistoryCreate {

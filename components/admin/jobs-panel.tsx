@@ -6,6 +6,7 @@ import { jobsApi } from "@/lib/api";
 import type { JobHistory, JobType } from "@/lib/types";
 import { useApi } from "@/hooks/use-api";
 import { toastError, toastSuccess } from "@/lib/toast";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
@@ -176,7 +177,14 @@ export function JobsPanel() {
               {jobs.data.rows.map((job) => (
                 <TableRow key={job.id}>
                   <TableCell className="py-3 pl-5">
-                    <p className="font-medium text-parchment">{jobLabel(job.job_type)}</p>
+                    <p className="font-medium text-parchment">
+                      {jobLabel(job.job_type)}
+                      {job.edge_name && (
+                        <Badge variant="outline" className="ml-2 align-middle">
+                          {job.edge_name}
+                        </Badge>
+                      )}
+                    </p>
                     {job.details && (
                       <p className="max-w-72 truncate text-xs text-ash" title={job.details}>
                         {job.details}

@@ -14,6 +14,7 @@ export { usersApi } from "./api/users";
 export { rolesApi } from "./api/roles";
 export { permissionsApi } from "./api/permissions";
 export { librariesApi } from "./api/libraries";
+export { edgeApi } from "./api/edge";
 export { artworkApi } from "./api/artwork";
 export { metadataApi } from "./api/metadata";
 export { scansApi } from "./api/scans";

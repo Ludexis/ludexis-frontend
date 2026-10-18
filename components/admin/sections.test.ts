@@ -18,6 +18,7 @@ describe("visibleSections", () => {
     expect(labels({ ...withPermissions(), is_superuser: true })).toEqual([
       "Overview",
       "Libraries",
+      "Edge",
       "Tasks",
       "Metadata",
       "Users",
@@ -30,6 +31,7 @@ describe("visibleSections", () => {
     expect(labels(withPermissions("ACCESS_ADMIN", "VIEW_AUDIT_LOGS"))).toEqual([
       "Overview",
       "Libraries",
+      "Edge",
       "Activity log",
       "Settings",
     ]);

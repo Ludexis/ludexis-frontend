@@ -74,7 +74,11 @@ export default function DashboardLibraries() {
     setBusyId(library.id);
     try {
       await (kind === "full" ? scansApi.runFull(library.id) : scansApi.runIncremental(library.id));
-      toastSuccess(kind === "full" ? `Full scan of ${library.name} started` : `Scanning ${library.name} for changes`);
+      if (library.edge_id && library.edge_status !== "ONLINE") {
+        toastSuccess(`${library.edge_name} scans ${library.name} when it checks in again`);
+      } else {
+        toastSuccess(kind === "full" ? `Full scan of ${library.name} started` : `Scanning ${library.name} for changes`);
+      }
       announceJobsChanged();
     } catch (error) {
       toastError(error, "Could not start the scan");
@@ -94,7 +98,7 @@ export default function DashboardLibraries() {
     <div>
       <SectionHeader
         title="Libraries"
-        description="Folders the server scans for games. A drive that is disconnected shows as offline and is checked again at the next scan."
+        description="Folders scanned for games, on the server or on an edge device. A drive that is disconnected shows as offline and is checked again at the next scan."
         actions={
           <>
             {addButton}
@@ -127,6 +131,7 @@ export default function DashboardLibraries() {
             <TableHeader>
               <TableRow>
                 <TableHead className="pl-5">Library</TableHead>
+                <TableHead>Location</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Last scan</TableHead>
                 <TableHead>Enabled</TableHead>
@@ -147,8 +152,22 @@ export default function DashboardLibraries() {
                       </p>
                     </TableCell>
                     <TableCell>
+                      {library.edge_id ? (
+                        <>
+                          <Status tone={library.edge_status === "ONLINE" ? "ok" : "idle"}>{library.edge_name}</Status>
+                          {library.drive_mount && (
+                            <p className="mt-1 font-mono text-xs text-ash" title="Where its drive was last seen">
+                              {library.drive_mount}
+                            </p>
+                          )}
+                        </>
+                      ) : (
+                        <span className="text-sm text-ash">Server</span>
+                      )}
+                    </TableCell>
+                    <TableCell>
                       <Status tone={offline ? "bad" : "ok"}>{offline ? "Offline" : "Online"}</Status>
-                      {offline && library.last_error && (
+                      {library.last_error && (
                         <p className="mt-1 max-w-64 truncate text-xs text-ash" title={library.last_error}>
                           {library.last_error}
                         </p>

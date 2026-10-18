@@ -2,6 +2,7 @@ import {
   CalendarClock,
   Gauge,
   HardDrive,
+  Radio,
   ScrollText,
   Settings,
   Sparkles,
@@ -22,6 +23,7 @@ export interface Section {
 export const SECTIONS: Section[] = [
   { href: "/admin", label: "Overview", icon: Gauge },
   { href: "/admin/libraries", label: "Libraries", icon: HardDrive, permission: "ACCESS_ADMIN" },
+  { href: "/admin/edge", label: "Edge", icon: Radio, permission: "ACCESS_ADMIN" },
   { href: "/admin/tasks", label: "Tasks", icon: CalendarClock, permission: "RUN_SCANS" },
   { href: "/admin/metadata", label: "Metadata", icon: Sparkles, permission: "EDIT_METADATA" },
   { href: "/admin/users", label: "Users", icon: Users, permission: "MANAGE_USERS" },

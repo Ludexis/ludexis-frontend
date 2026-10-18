@@ -212,6 +212,10 @@ export const apiClient = {
       auth,
     }),
 
+  /** A file the server builds, such as a download. */
+  postBlob: async (endpoint: string, body?: unknown): Promise<Blob> =>
+    (await fetchWithAuth(endpoint, { method: "POST", body })).blob(),
+
   delete: <T>(endpoint: string, auth?: boolean) =>
     request<T>(endpoint, {
       method: "DELETE",
