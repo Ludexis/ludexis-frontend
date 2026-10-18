@@ -1,11 +1,11 @@
 <p align="center">
-  <img src="https://raw.githubusercontent.com/InvictusRex/Ludexis/main/docs/Ludexis.webp" width="320" alt="Ludexis">
+  <img src="https://raw.githubusercontent.com/Ludexis/Ludexis/main/docs/Ludexis.webp" width="320" alt="Ludexis">
 </p>
 
 <h3 align="center">Ludexis Frontend</h3>
 
 <p align="center">
-  The web app of <a href="https://github.com/InvictusRex/Ludexis">Ludexis</a>, a self-hosted catalogue for game archives.
+  The web app of <a href="https://github.com/Ludexis/Ludexis">Ludexis</a>, a self-hosted catalogue for game archives.
 </p>
 
 <p align="center">
@@ -18,14 +18,14 @@
 </p>
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/InvictusRex/Ludexis/main/docs/screenshots/library.webp" alt="Ludexis library" width="100%">
+  <img src="https://raw.githubusercontent.com/Ludexis/Ludexis/main/docs/screenshots/library.webp" alt="Ludexis library" width="100%">
 </p>
 
 ---
 
 This repository holds the browser side of Ludexis: the library with filters and grouped versions, game pages with screenshots, versions and files, collections, franchises, developers and tags, account settings, and the admin dashboard for libraries, jobs, schedules, users, roles and settings.
 
-It talks to the REST API in [ludexis-backend](https://github.com/Ludexis/ludexis-backend). To run the whole stack, use the Docker Compose setup in the [main repository](https://github.com/InvictusRex/Ludexis).
+It talks to the REST API in [ludexis-backend](https://github.com/Ludexis/ludexis-backend). To run the whole stack, use the Docker Compose setup in the [main repository](https://github.com/Ludexis/Ludexis).
 
 ## Getting started
 
@@ -94,6 +94,10 @@ Pushes to `main` publish `ghcr.io/ludexis/ludexis-frontend:latest` for `linux/am
 ## Contributing
 
 Bug reports, ideas and pull requests are welcome. Read the [contributing guide](https://github.com/Ludexis/.github/blob/main/CONTRIBUTING.md) first. In short: branch from `main`, keep each change focused, and make sure `npm run lint`, `npx tsc --noEmit` and `npm test` pass. Include a screenshot for visible changes.
+
+## Maintainer
+
+**Rupankar Majumdar ([@InvictusRex](https://github.com/InvictusRex))**
 
 ## License
 
