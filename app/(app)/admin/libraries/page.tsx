@@ -26,8 +26,10 @@ import { SectionHeader, Status, dateTime } from "@/components/admin/common";
 import { LibraryDialog } from "@/components/admin/library-dialog";
 import { ScanButtons } from "@/components/admin/scan-buttons";
 import { announceJobsChanged } from "@/components/shell/jobs-indicator";
+import { useConfirm } from "@/contexts/confirm-context";
 
 export default function DashboardLibraries() {
+  const confirm = useConfirm();
   const { user, loading } = useAuth();
   useRequirePermission(user, loading, "ACCESS_ADMIN");
 
@@ -60,7 +62,7 @@ export default function DashboardLibraries() {
   };
 
   const remove = async (library: LibraryRead) => {
-    if (!window.confirm(`Remove the library "${library.name}"? Files on disk are not touched.`)) return;
+    if (!(await confirm({ title: `Remove ${library.name}?`, description: "Its games leave the catalogue; files on disk are not touched.", confirmLabel: "Remove library" }))) return;
     setBusyId(library.id);
     try {
       await librariesApi.remove(library.id);

@@ -8,6 +8,7 @@ import { plural } from "@/lib/format";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
+import { useConfirm } from "@/contexts/confirm-context";
 
 interface DuplicateGroupCardProps {
   group: DuplicateGroup;
@@ -17,6 +18,7 @@ interface DuplicateGroupCardProps {
 
 /** Copies of the same file: pick the one to keep, delete the rest. */
 export function DuplicateGroupCard({ group, onDeleteEntry, onResolve }: DuplicateGroupCardProps) {
+  const confirm = useConfirm();
   const [keepId, setKeepId] = useState(group.entries[0]?.id ?? "");
   const [resolving, setResolving] = useState(false);
 
@@ -26,7 +28,7 @@ export function DuplicateGroupCard({ group, onDeleteEntry, onResolve }: Duplicat
 
   const resolve = async () => {
     if (duplicateIds.length === 0) return;
-    if (!window.confirm(`Keep "${kept?.title ?? ""}" and delete ${plural(duplicateIds.length, "duplicate")}?`)) return;
+    if (!(await confirm({ title: `Delete ${plural(duplicateIds.length, "duplicate")}?`, description: `"${kept?.title ?? ""}" is kept; the others leave the library. Files on disk are not touched.`, confirmLabel: "Delete duplicates" }))) return;
     setResolving(true);
     try {
       await onResolve(keepId, duplicateIds);

@@ -3,6 +3,7 @@ import { Cinzel, Hanken_Grotesk } from "next/font/google";
 import { Toaster } from "sonner";
 import "./globals.css";
 import { AuthProvider } from "@/contexts/auth-context";
+import { ConfirmProvider } from "@/contexts/confirm-context";
 
 // Downloaded at build time and served by the app itself: no requests to Google at runtime.
 const cinzel = Cinzel({ subsets: ["latin"], weight: ["600", "700"], variable: "--font-cinzel" });
@@ -34,7 +35,9 @@ export default function RootLayout({
         >
           Skip to content
         </a>
-        <AuthProvider>{children}</AuthProvider>
+        <AuthProvider>
+          <ConfirmProvider>{children}</ConfirmProvider>
+        </AuthProvider>
         <Toaster
           position="bottom-right"
           theme="dark"

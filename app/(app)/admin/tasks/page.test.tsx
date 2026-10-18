@@ -57,6 +57,9 @@ function renderPage(user: User = admin) {
   render(<DashboardTasks />);
 }
 
+// Every confirmation is accepted.
+vi.mock("@/contexts/confirm-context", () => ({ useConfirm: () => async () => true }));
+
 describe("DashboardTasks", () => {
   afterEach(() => {
     cleanup();
@@ -95,14 +98,12 @@ describe("DashboardTasks", () => {
 
   it("opens the job history from ?tab=jobs and cancels a running job", async () => {
     search = new URLSearchParams("tab=jobs");
-    vi.stubGlobal("confirm", vi.fn(() => true));
     vi.mocked(jobsApi.cancel).mockResolvedValue(job);
     renderPage();
     // The job name is also a filter option, so wait for the row's own button rather than the text.
     fireEvent.click(await screen.findByRole("button", { name: "Cancel" }));
     expect(jobsApi.getAll).toHaveBeenCalledWith(undefined, undefined, 0, 26);
     await waitFor(() => expect(jobsApi.cancel).toHaveBeenCalledWith("job-1"));
-    vi.unstubAllGlobals();
   });
 
   it("filters jobs by status", async () => {

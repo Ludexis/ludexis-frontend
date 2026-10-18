@@ -22,10 +22,12 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { EmptyState } from "@/components/brand/empty-state";
 import { Pager, Status, splitPage } from "./common";
 import { CreateUserDialog, ResetPasswordDialog, UserAccessDialog, UserRolesDialog } from "./user-dialogs";
+import { useConfirm } from "@/contexts/confirm-context";
 
 const PAGE_SIZE = 50;
 
 export function UsersPanel() {
+  const confirm = useConfirm();
   const { user: me } = useAuth();
   const [page, setPage] = useState(1);
   const users = useApi(
@@ -57,8 +59,8 @@ export function UsersPanel() {
       ? act(target, () => usersApi.deactivate(target.id), `${target.username} can no longer sign in`, "Could not deactivate the user")
       : act(target, () => usersApi.activate(target.id), `${target.username} can sign in again`, "Could not activate the user");
 
-  const remove = (target: User) => {
-    if (!window.confirm(`Delete ${target.username}? They will no longer be able to sign in.`)) return;
+  const remove = async (target: User) => {
+    if (!(await confirm({ title: `Delete ${target.username}?`, description: "They will no longer be able to sign in.", confirmLabel: "Delete user" }))) return;
     act(target, () => usersApi.remove(target.id), `${target.username} deleted`, "Could not delete the user");
   };
 

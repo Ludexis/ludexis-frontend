@@ -23,6 +23,7 @@ import { EmptyState } from "@/components/brand/empty-state";
 import { announceJobsChanged } from "@/components/shell/jobs-indicator";
 import { jobLabel } from "@/components/shell/job-labels";
 import { JobStatus, NativeSelect, Pager, dateTime, isActiveJob, splitPage } from "./common";
+import { useConfirm } from "@/contexts/confirm-context";
 
 const PAGE_SIZE = 25;
 const POLL_MS = 5000;
@@ -45,6 +46,7 @@ const STATUSES: [string, string][] = [
 ];
 
 export function JobsPanel() {
+  const confirm = useConfirm();
   const [status, setStatus] = useState("");
   const [type, setType] = useState("");
   const [page, setPage] = useState(1);
@@ -83,7 +85,7 @@ export function JobsPanel() {
   };
 
   const cancel = async (job: JobHistory) => {
-    if (!window.confirm(`Cancel ${jobLabel(job.job_type).toLowerCase()}?`)) return;
+    if (!(await confirm({ title: `Cancel ${jobLabel(job.job_type).toLowerCase()}?`, description: "The task stops at its next step; what it already stored is kept.", confirmLabel: "Cancel task" }))) return;
     setBusyId(job.id);
     try {
       await jobsApi.cancel(job.id);

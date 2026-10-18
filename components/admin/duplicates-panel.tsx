@@ -9,12 +9,14 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/brand/empty-state";
 import { DuplicateGroupCard } from "./duplicate-group-card";
+import { useConfirm } from "@/contexts/confirm-context";
 
 export function DuplicatesPanel() {
+  const confirm = useConfirm();
   const groups = useApi(() => archiveApi.getDuplicates(), []);
 
   const deleteEntry = async (id: string) => {
-    if (!window.confirm("Delete this game from the library?")) return;
+    if (!(await confirm({ title: "Delete this game?", description: "The game is removed from the library. Its files on disk are not touched.", confirmLabel: "Delete game" }))) return;
     try {
       await archiveApi.delete(id);
       toastSuccess("Game deleted");

@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { DuplicateGroupCard } from "./duplicate-group-card";
@@ -26,14 +26,12 @@ const findRow = (title: string) => {
   return text.closest("li") as HTMLElement;
 };
 
-describe("DuplicateGroupCard", () => {
-  beforeEach(() => {
-    vi.stubGlobal("confirm", vi.fn(() => true));
-  });
+// Every confirmation is accepted.
+vi.mock("@/contexts/confirm-context", () => ({ useConfirm: () => async () => true }));
 
+describe("DuplicateGroupCard", () => {
   afterEach(() => {
     cleanup();
-    vi.unstubAllGlobals();
   });
 
   it("renders each entry's title", () => {

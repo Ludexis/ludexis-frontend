@@ -16,17 +16,19 @@ import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/brand/empty-state";
 import { humanize } from "./common";
+import { useConfirm } from "@/contexts/confirm-context";
 
 const loadRoles = () => Promise.all([rolesApi.getAll(), permissionsApi.getAll()]);
 
 export function RolesPanel() {
+  const confirm = useConfirm();
   const data = useApi(loadRoles, []);
   // undefined: closed; null: a new role.
   const [editing, setEditing] = useState<RoleRead | null | undefined>(undefined);
   const [busyId, setBusyId] = useState<string | null>(null);
 
   const remove = async (role: RoleRead) => {
-    if (!window.confirm(`Delete the role "${role.name}"? Users holding it lose its permissions.`)) return;
+    if (!(await confirm({ title: `Delete the role ${role.name}?`, description: "Users holding it lose its permissions.", confirmLabel: "Delete role" }))) return;
     setBusyId(role.id);
     try {
       await rolesApi.remove(role.id);
